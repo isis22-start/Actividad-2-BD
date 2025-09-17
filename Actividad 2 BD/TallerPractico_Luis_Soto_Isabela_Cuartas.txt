@@ -1,0 +1,387 @@
+Evidencia de Aprendizaje 2. Taller práctico.
+
+
+
+
+Luis Fernando Soto Gaspar.
+Isabela Cuartas Vence.
+
+
+
+
+Institución Universitaria Digital de Antioquia.
+
+
+
+
+Base de Datos. PREICA2502B010059
+
+
+
+Julián Andrés Loaiza López
+
+
+
+
+Septiembre 14, 2025
+DOCUMENTACIÓN
+- Tablas seleccionadas
+Se seleccionaron las siguientes dos tablas para elaborar los ejercicios propuestos: 
+* Docente: Que almacena la información de los docentes como documento, nombres, título, años de experiencia, etc.
+* Proyecto: Que almacena la información de estos como nombre, fechas, presupuesto, horas y docente jefe responsable.
+
+- CRUD con procedimientos almacenados
+A continuación se mostrarán los procedimientos almacenados para realizar las operaciones CRUD sobre la tabla docente 
+
+TABLA DOCENTE
+
+* Procedimiento crear un docente: 
+Inserta un nuevo docente en la tabla y retorna el id generado.
+CREATE PROCEDURE sp_docente_crear(
+IN p_numero_documento VARCHAR(20),
+IN p_nombres          VARCHAR(120),
+IN p_titulo           VARCHAR(120),
+IN p_anios_experiencia INT,
+IN p_direccion        VARCHAR(180),
+IN p_tipo_docente     VARCHAR(40)
+)
+BEGIN
+INSERT INTO docente (numero_documento, nombres, titulo, anios_experiencia, direccion, tipo_docente)
+VALUES (p_numero_documento, p_nombres, p_titulo, IFNULL(p_anios_experiencia,0), p_direccion, p_tipo_docente);
+SELECT LAST_INSERT_ID() AS docente_id_creado;
+END;
+
+Explicación paso por paso: 
+
+CREATE PROCEDURE sp_docente_crear(...)
+En esta parte se le dice a MySQL que cree un procedimiento almacenado llamado "sp_docente_crear" 
+
+IN p_numero_documento VARCHAR(20),
+Todos los parámetros aquí son de tipo IN, lo que significa que el procedimiento recibe estos valores desde el llamador, los nombres con prefijo p_ como convención común para indicar "parámetro", ya los varchar son como la cantidad de caracteres que pueden llegar a tener cada dato e INT para números enteros.
+
+BEGIN ... END;
+Todo lo que se encuentra entre estos dos son el cuerpo del procedimiento
+
+INSERT INTO docente (numero_documento, nombres, titulo, anios_experiencia, direccion, tipo_docente)
+Aquí se inserta un nuevo registro en la tabla "docente"
+VALUES (p_numero_documento, p_nombres, p_titulo, IFNULL(p_anios_experiencia,0), p_direccion, p_tipo_docente);
+Aquí se utilizan las variables recibidas, cuando se usa IFNULL por decir en p_anios_experiencia que es NULL, entonces solo se insertará 0, ya que, en la definición de la tabla docente la columna anios_experiencia puede ser NOT NULL y al usar IFNULL evita insertar NULL accidentalmente, garantizando así una consistencia 
+
+SELECT LAST_INSERT_ID() AS docente_id_creado;
+luego de usar un INSERT en una tabla con AUTO_INCREMENT, al usar LAST_INSERT_ID() devuelve el id auto-generado (es decir, el valor de la columna docente_id creado en esta conexión)
+
+END;
+Fin del procedimiento
+
+* Procedimiento leer docente 
+Consulta un docente por su identificador.
+CREATE PROCEDURE sp_docente_leer(IN p_docente_id INT)
+BEGIN
+SELECT * FROM docente WHERE docente_id = p_docente_id;
+END;
+Explicación paso a paso 
+
+CREATE PROCEDURE sp_docente_leer(...)
+Se le dice a MySQL que se va a crear un procedimiento almacenado 
+
+IN p_docente_id INT
+Aquí se está definiendo un parámetro de entrada llamado p_docente_id de tipo entero INT, ahora, IN significa que el procedimiento recibe un valor desde quien lo llama, dentro del cuerpo del procedimiento p_docente_id actúa como una variable que contiene un valor y ya p_ se vuelve a utilizar para señalar que es un parámetro
+
+BEGIN ... END;
+Estos marcan el bloque que contiene las instrucciones que se ejecutarán cuando se llame al procedimiento 
+
+SELECT * FROM docente WHERE docente_id = p_docente_id;
+Ya estas son las instrucciones que se encargan de buscar en la tabla "docente" las filas donde el "docente_id" coincide con el valor del parámetro, también se utiliza SELECT* para devolver todas las columnas de la fila encontrada, obteniendo así un resultado si existe una fila con ese docente_id, de lo contrario solo devuelve un resultado vacío 
+
+* Procedimiento para actualizar una tabla
+Actualiza la información de un docente existente y retorna la fila actualizada.
+CREATE PROCEDURE sp_docente_actualizar(
+IN p_docente_id       INT,
+IN p_numero_documento VARCHAR(20),
+IN p_nombres          VARCHAR(120),
+IN p_titulo           VARCHAR(120),
+IN p_anios_experiencia INT,
+IN p_direccion        VARCHAR(180),
+IN p_tipo_docente     VARCHAR(40)
+)
+BEGIN
+UPDATE docente
+SET numero_documento = p_numero_documento,
+         nombres = p_nombres,
+         titulo = p_titulo,
+         anios_experiencia = IFNULL(p_anios_experiencia,0),
+         direccion = p_direccion,
+         tipo_docente = p_tipo_docente
+WHERE docente_id = p_docente_id;
+
+SELECT * FROM docente WHERE docente_id = p_docente_id;
+END;
+Explicación paso a paso 
+
+CREATE PROCEDURE sp_docente_actualizar(...)
+Declara la creación de un procedimiento almacenado llamado sp_docente_actualizar
+
+IN
+Todos son parámetros de entrada IN, p_docente_id INT que es el id del docente que se quiere actualizar (clave primaria) y p_numero_documento, p_nombres, p_titulo, p_anios_experiencia, p_direccion, p_tipo_docente van a ser lo nuevos valores 
+BEGIN ... END;
+Define el bloque de código que se ejecutará cuando se llame al procedimiento.
+
+UPDATE docente SET ... WHERE docente_id = p_docente_id;
+Se actualiza la fila de docente donde docente_id va a ser igual a p_docente_Id, se listan las columnas que se actualizan y las iguala a los nuevos parámetros recibidos 
+
+IFNULL(p_anios_experiencia,0)
+Si el parámetro viene NULL, se insertará 0 en la columna anios_experiencia.
+
+SELECT * FROM docente WHERE docente_id = p_docente_id;
+Después del UPDATE, el procedimiento hace un SELECT que devuelve la fila actualizada al cliente que llamó el procedimiento, en este caso, mostrando que si la fila fue actualizada, se verán la fila con los valores nuevos y si no existía el docente_id, lanzará un resultado vacío
+
+* Procedimiento para eliminar tabla
+Elimina un docente de la tabla. Si tiene proyectos asociados, deben eliminarse o reasignarse previamente.
+CREATE PROCEDURE sp_docente_eliminar(IN p_docente_id INT)
+BEGIN
+DELETE FROM docente WHERE docente_id = p_docente_id;
+END;
+Explicación paso a paso 
+
+CREATE PROCEDURE sp_docente_eliminar(IN p_docente_id INT)
+Declara la creación de un procedimiento almacenado llamado sp_docente_eliminar. Al tener un parámetro de entrada IN llamado p_docente_id de tipo INT, ese parámetro es la identificación del docente que se quiere eliminar y el prefijo p_ indica parámetro
+
+BEGIN ... END;
+Marca el bloque de sentencias que se ejecutarán al llamar el procedimiento.
+
+DELETE FROM docente WHERE docente_id = p_docente_id;
+Borra de la tabla docente las filas cuyo docente_id coincida con el valor pasado en p_docente_id, como en este caso docente_id es la PK, normalmente se borrará a lo sumo una fila y si no existe ningún docente con ese id, la sentencia no afectará filas
+TABLA PROYECTO
+* Procedimiento crear un proyecto 
+Crea un nuevo proyecto asociado a un docente jefe
+CREATE PROCEDURE sp_proyecto_crear(
+IN p_nombre           VARCHAR(120),
+IN p_descripcion      VARCHAR(400),
+IN p_fecha_inicial    DATE,
+IN p_fecha_final      DATE,
+IN p_presupuesto      DECIMAL(12,2),
+IN p_horas            INT,
+IN p_docente_id_jefe  INT
+)
+BEGIN
+INSERT INTO proyecto (nombre, descripcion, fecha_inicial, fecha_final, presupuesto, horas, docente_id_jefe)
+VALUES (p_nombre, p_descripcion, p_fecha_inicial, p_fecha_final, IFNULL(p_presupuesto,0), IFNULL(p_horas,0), p_docente_id_jefe);
+SELECT LAST_INSERT_ID() AS proyecto_id_creado;
+END;
+Explicación paso a paso
+
+CREATE PROCEDURE sp_proyecto_crear(...)
+Indica a MySQL que se está creando un procedimiento almacenado llamado sp_proyecto_crear.
+
+IN p_
+Todos son parámetros de entrada, es decir, el procedimiento recibe estos valores al llamarlo y p_ para marcar parámetros
+
+BEGIN ... END;
+Bloque que contiene las sentencias que se ejecutan cuando llamas al procedimiento
+
+INSERT INTO proyecto (...)
+Inserta una nueva fila en la tabla proyecto y la lista de columnas asegura que cada valor vaya a su columna correcta
+
+VALUES (... IFNULL(p_presupuesto,0), IFNULL(p_horas,0), p_docente_id_jefe)
+Se usan los parámetros para poblar la nueva fila 
+IFNULL(p_presupuesto,0) y IFNULL(p_horas,0)
+Si el llamador pasó NULL para presupuesto o horas, se insertará 0 y es una forma simple de normalizar valores por defecto sin toca la definición de la tabla 
+
+SELECT LAST_INSERT_ID() AS proyecto_id_creado;
+Después del INSERT esta sentencia devuelve el id autogenerado de la fila recién creada, LAST_INSERT_ID() es específico de la conexión y es seguro usarlo justo después del INSERT en la misma sesión, el SELECT devuelve un resultado al cliente, así que se verá una tabla con una columna proyecto_id_creado.
+
+END
+Finaliza la definición
+
+* Procedimiento leer un proyecto
+Consulta un proyecto y muestra el nombre del docente jefe asociado
+CREATE PROCEDURE sp_proyecto_leer(IN p_proyecto_id INT)
+BEGIN
+SELECT p.*, d.nombres AS nombre_docente_jefe
+FROM proyecto p
+JOIN docente d ON d.docente_id = p.docente_id_jefe
+WHERE p.proyecto_id = p_proyecto_id;
+END;
+Explicación paso a paso 
+
+CREATE PROCEDURE sp_proyecto_leer(IN p_proyecto_id INT)
+Crea un procedimiento almacenado llamado sp_proyecto_leer, Tiene un parámetro de entrada (IN) llamado p_proyecto_id de tipo INT, ese parámetro es la id del proyecto que quiere consultar y p_ indica parámetro
+
+BEGIN ... END;
+Marca el bloque de sentencias que se ejecutarán al llamar el procedimiento.
+
+SELECT p.*, d.nombres AS nombre_docente_jefe
+p.* selecciona todas las columnas de la tabla proyecto y con d.nombres AS nombre_docente_jefe añade la columna nombres de la tabla docente, pero renombra como nombre_docente_jefe para que el resultado sea claro y así evitar colisiones de nombres
+
+FROM proyecto p
+Usa la tabla proyecto y le asigna el alias p. El alias permite escribir columnas como p.proyecto_id, p.nombre, etc.
+
+JOIN docente d ON d.docente_id = p.docente_id_jefe
+Hace un INNER JOIN entre proyecto y docente, emparejando según la FK p.docente_id_jefe = d.docente_id. Porque el query solo devolvería filas si existe un docente asociado, si no hay un docente coincidente, no se devuelve el proyecto 
+
+WHERE p.proyecto_id = p_proyecto_id;
+Filtra por el proyecto_id igual al parámetro recibido y como proyecto_id es PK, la consulta devuelve a lo sumo una fila
+
+* Procedimiento para actualizar proyecto
+Actualiza un proyecto y retorna la información actualizada.
+CREATE PROCEDURE sp_proyecto_actualizar(
+  IN p_proyecto_id      INT,
+  IN p_nombre           VARCHAR(120),
+  IN p_descripcion      VARCHAR(400),
+  IN p_fecha_inicial    DATE,
+  IN p_fecha_final      DATE,
+  IN p_presupuesto      DECIMAL(12,2),
+  IN p_horas            INT,
+  IN p_docente_id_jefe  INT
+)
+BEGIN
+  UPDATE proyecto
+     SET nombre = p_nombre,
+         descripcion = p_descripcion,
+         fecha_inicial = p_fecha_inicial,
+         fecha_final = p_fecha_final,
+         presupuesto = IFNULL(p_presupuesto,0),
+         horas = IFNULL(p_horas,0),
+         docente_id_jefe = p_docente_id_jefe
+   WHERE proyecto_id = p_proyecto_id;
+
+  CALL sp_proyecto_leer(p_proyecto_id);
+END;Explicación paso a paso 
+
+CREATE PROCEDURE sp_proyecto_actualizar(...)
+Declara la creación de un procedimiento almacenado llamado sp_proyecto_actualizar
+
+Parámetros IN
+Todos son parámetros de entrada IN, usados para pasar los nuevos valores, por decir, en p_proyecto_id el id del proyecto que se actualiza y p_nombre, p_descripcion, p_fecha_inicial, p_fecha_final, p_presupuesto, p_horas, p_docente_id_jefe son los nuevos valores para las columnas correspondientes 
+
+BEGIN ... END;
+Marca el bloque de sentencias que se ejecutarán al llamar el procedimiento.
+
+UPDATE proyecto SET ... WHERE proyecto_id = p_proyecto_id;
+Actualiza la fila de proyecto cuyo proyecto_id sea igual a p_proyecto_id, Si no existe proyecto_id correspondiente, el UPDATE afectará 0 filas
+
+SET columna = parámetro
+Asigna cada nuevo valor a la columna correspondiente.
+
+IFNULL(p_presupuesto,0) y IFNULL(p_horas,0)
+IFNULL(x,0) sustituye NULL por 0, ya que si el llamador pasa NULL para presupuesto u horas, se guardará 0 en la columna en lugar de NULL, esto evita problemas si las columnas no permiten NULL o si quieres un valor por defecto.
+
+CALL sp_proyecto_leer(p_proyecto_id);
+Después del UPDATE se llama a otro procedimiento (sp_proyecto_leer) que realiza un SELECT del proyecto (con el join para mostrar el nombre del docente jefe). Lo que tendrá como resultado que el procedimiento sp_proyecto_actualizar terminará devolviendo al cliente el resultado que genera sp_proyecto_leer, es decir la fila actualizada, como también saldrá el resultado vacío si no existe
+
+* Procedimiento eliminar proyecto
+Elimina un proyecto de la tabla proyecto.
+CREATE PROCEDURE sp_proyecto_eliminar(IN p_proyecto_id INT)
+BEGIN
+DELETE FROM proyecto WHERE proyecto_id = p_proyecto_id;
+END;
+Explicación paso a paso 
+
+CREATE PROCEDURE sp_proyecto_eliminar(IN p_proyecto_id INT)
+Declara un procedimiento almacenado llamado sp_proyecto_eliminar. Tiene un parámetro de entrada (IN) llamado p_proyecto_id de tipo INT. Ese parámetro recibe el identificador del proyecto que se desea borrar.
+
+BEGIN ... END;
+Delimita el bloque de instrucciones que se ejecutan cuando llamas al procedimiento.
+
+DELETE FROM proyecto WHERE proyecto_id = p_proyecto_id;
+Sentencia que borra de la tabla proyecto las filas cuyo proyecto_id coincida con el valor pasado, dado que proyecto_id es la PK, normalmente se borrará a lo sumo una fila y si no existe p_proyecto_id, la sentencia afecta 0 filas
+
+- Función definida por el usuario (UDF)
+La siguiente función calcula el promedio de los presupuestos de los proyectos dirigidos por un docente específico.
+
+CREATE FUNCTION fn_promedio_presupuesto_por_docente(p_docente_id INT)
+RETURNS DECIMAL(12,2)
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+DECLARE v_prom DECIMAL(12,2);
+SELECT IFNULL(AVG(presupuesto),0) INTO v_prom
+FROM proyecto
+WHERE docente_id_jefe = p_docente_id;
+RETURN IFNULL(v_prom,0);
+END;
+Explicación paso a paso
+
+CREATE FUNCTION fn_promedio_presupuesto_por_docente(p_docente_id INT)
+Define una función almacenada con nombre fn_promedio_presupuesto_por_docente. También recibe un parámetro de entrada p_docente_id (tipo INT) (es el id del docente cuyo promedio queremos calcular.)
+RETURNS DECIMAL(12,2)
+Declara que la función retornará un valor tipo DECIMAL(12,2) (número con hasta 12 dígitos en total y 2 decimales).
+
+DETERMINISTIC
+Indica que, para los mismos valores de entrada, la función devuelve siempre el mismo resultado.
+
+READS SQL DATA
+Informa a MySQL que la función lee datos de tablas (pero no los modifica).
+
+BEGIN ... END;
+Delimita el bloque de instrucciones que se ejecutan cuando llamas al procedimiento.
+
+DECLARE v_prom DECIMAL(12,2);
+Declara una variable local v_prom donde se almacenará temporalmente el promedio calculado. Usa el mismo tipo DECIMAL(12,2) que devolverá la función.
+
+AVG(presupuesto)
+calcula el promedio aritmético de la columna presupuesto sobre las filas que cumplen la condición. Si no hay filas que cumplan la condición (el docente no tiene proyectos), AVG(...) devuelve NULL.
+
+IFNULL(AVG(...),0)
+Convierte ese NULL en 0. Así, si el docente no tiene proyectos, el promedio devuelto será 0 en lugar de NULL.
+INTO v_prom
+Coloca el resultado del SELECT dentro de la variable local v_prom
+
+WHERE docente_id_jefe = p_docente_id
+Limita el cálculo solo a los proyectos cuyo jefe sea el docente indicado.
+
+RETURN IFNULL(v_prom,0);
+Devuelve el valor almacenado en v_prom. Como medida extra se aplica IFNULL por si acaso v_prom fuera NULL, El valor tiene tipo DECIMAL(12,2) tal como declaró RETURNS.
+
+- Triggers de auditoría
+* Trigger AFTER UPDATE
+CREATE TRIGGER tr_docente_after_update
+AFTER UPDATE ON docente
+FOR EACH ROW
+BEGIN
+INSERT INTO copia_actualizados_docente
+(docente_id, numero_documento, nombres, titulo, anios_experiencia, direccion, tipo_docente)
+VALUES
+(NEW.docente_id, NEW.numero_documento, NEW.nombres, NEW.titulo, NEW.anios_experiencia, NEW.direccion, NEW.tipo_docente);
+END;
+este trigger guarda una copia del registro actualizado en la tabla copia_actualizados_docente.
+* Trigger AFTER DELETE
+
+CREATE TRIGGER tr_docente_after_delete
+AFTER DELETE ON docente
+FOR EACH ROW
+BEGIN
+INSERT INTO copia_eliminados_docente
+(docente_id, numero_documento, nombres, titulo, anios_experiencia, direccion, tipo_docente)
+VALUES
+(OLD.docente_id, OLD.numero_documento, OLD.nombres, OLD.titulo, OLD.anios_experiencia, OLD.direccion, OLD.tipo_docente);
+END;
+Este trigger guarda una copia del registro eliminado en la tabla copia_eliminados_docente.
+
+- Ejecución y pruebas
+A continuación, se muestran ejemplos de ejecución de las sentencias SQL para probar los procedimientos, función y triggers.
+
+* Insertar docente
+
+CALL sp_docente_crear('CC1001','Ana Gómez','MSc. Ing. Sistemas',6,'Cra 10 # 5-55','Tiempo completo');
+* Insertar proyecto
+ 
+CALL sp_proyecto_crear('Plataforma Académica','Módulos de matrícula','2025-01-01',NULL,25000000,800,1);
+* Actualizar docente (dispara trigger)
+
+CALL sp_docente_actualizar(2,'CC1002','Carlos A. Ruiz','Esp. Base de Datos',4,'Cll 20 # 4-10','Cátedra');
+* Eliminar docente (dispara trigger):
+DELETE FROM proyecto WHERE docente_id_jefe = 1;
+CALL sp_docente_eliminar(1);
+* Consultar auditoría de actualizados:
+
+SELECT * FROM copia_actualizados_docente;
+* Consultar auditoría de eliminados:
+
+SELECT * FROM copia_eliminados_docente;
+* Uso de la función UDF:
+SELECT fn_promedio_presupuesto_por_docente(2) AS promedio;
+
+1
+
+
